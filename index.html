@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Z-API • Exportador de Contatos por Etiqueta</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e0d;
+    --bg-soft: #11161a;
+    --bg-card: #161c20;
+    --border: #1f2a30;
+    --border-soft: #243036;
+    --text: #e6edf3;
+    --text-dim: #8b9aa6;
+    --text-mute: #5a6976;
+    --accent: #25D366;
+    --accent-dark: #128C7E;
+    --accent-glow: rgba(37, 211, 102, 0.15);
+    --warn: #ffb84d;
+    --error: #ff6b6b;
+    --info: #5eb4ff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+  body {
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(37, 211, 102, 0.08) 0%, transparent 40%),
+      radial-gradient(circle at 85% 80%, rgba(18, 140, 126, 0.06) 0%, transparent 50%);
+    background-attachment: fixed;
+  }
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 24px;
+  }
+  header {
+    margin-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 24px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 8px;
+  }
+  .brand-icon {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+    display: grid; place-items: center;
+    font-size: 22px;
+    box-shadow: 0 4px 16px var(--accent-glow);
+  }
+  .brand h1 {
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  .brand small {
+    color: var(--text-dim);
+    font-size: 13px;
+    display: block;
+    margin-top: 2px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 24px;
+  }
+  @media (max-width: 900px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+  }
+  .card h2 {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .card h2::before {
+    content: '';
+    width: 4px; height: 16px;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+  label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  input[type="text"], input[type="password"] {
+    width: 100%;
+    background: var(--bg-soft);
+    border: 1px solid var(--border-soft);
+    color: var(--text);
+    padding: 11px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: 'JetBrains Mono', monospace;
+    transition: border 0.15s, background 0.15s;
+    margin-bottom: 14px;
+  }
+  input:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: #0d1518;
+  }
+  .btn {
+    background: var(--accent);
+    color: #001a0a;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: inherit;
+  }
+  .btn:hover:not(:disabled) {
+    background: #2ee876;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px var(--accent-glow);
+  }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn.secondary {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border-soft);
+  }
+  .btn.secondary:hover:not(:disabled) {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(37, 211, 102, 0.05);
+  }
+  .btn-row {
+    display: flex; gap: 10px; margin-top: 8px;
+  }
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--bg-soft);
+    color: var(--text-mute);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .status-pill.connected { background: rgba(37, 211, 102, 0.12); color: var(--accent); }
+  .status-pill.disconnected { background: rgba(255, 107, 107, 0.12); color: var(--error); }
+  .status-pill .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 8px currentColor;
+  }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .stat {
+    background: var(--bg-soft);
+    border: 1px solid var(--border-soft);
+    border-radius: 10px;
+    padding: 14px;
+  }
+  .stat-value {
+    font-size: 24px;
+    font-weight: 800;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent);
+  }
+  .stat-label {
+    font-size: 11px;
+    color: var(--text-mute);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 4px;
+  }
+  .progress {
+    background: var(--bg-soft);
+    border-radius: 100px;
+    height: 8px;
+    overflow: hidden;
+    margin: 16px 0 8px;
+  }
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-dark));
+    width: 0%;
+    transition: width 0.3s;
+    border-radius: 100px;
+  }
+  .progress-label {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    text-align: center;
+  }
+  .log {
+    background: #060809;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    height: 240px;
+    overflow-y: auto;
+    line-height: 1.6;
+  }
+  .log-line { padding: 2px 0; }
+  .log-line .ts { color: var(--text-mute); margin-right: 8px; }
+  .log-line.info { color: var(--info); }
+  .log-line.success { color: var(--accent); }
+  .log-line.warn { color: var(--warn); }
+  .log-line.error { color: var(--error); }
+  .log-line.muted { color: var(--text-dim); }
+  .tags-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+    max-height: 180px;
+    overflow-y: auto;
+    padding: 4px;
+  }
+  .tag-chip {
+    background: var(--bg-soft);
+    border: 1px solid var(--border-soft);
+    padding: 6px 12px;
+    border-radius: 100px;
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+  }
+  .tag-chip .swatch {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+  .tag-chip .count {
+    background: var(--accent);
+    color: #001a0a;
+    border-radius: 100px;
+    padding: 1px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    margin-left: 4px;
+  }
+  .helper {
+    font-size: 12px;
+    color: var(--text-mute);
+    margin-top: -8px;
+    margin-bottom: 14px;
+    line-height: 1.5;
+  }
+  .alert {
+    background: rgba(255, 184, 77, 0.08);
+    border: 1px solid rgba(255, 184, 77, 0.3);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 12px;
+    color: var(--warn);
+    margin-bottom: 18px;
+    line-height: 1.6;
+  }
+  .alert.danger {
+    background: rgba(255, 107, 107, 0.08);
+    border-color: rgba(255, 107, 107, 0.3);
+    color: var(--error);
+  }
+  .alert strong { font-weight: 700; }
+  .footer {
+    margin-top: 32px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    color: var(--text-mute);
+    font-size: 12px;
+    text-align: center;
+  }
+  .log::-webkit-scrollbar, .tags-list::-webkit-scrollbar { width: 6px; }
+  .log::-webkit-scrollbar-thumb { background: var(--border-soft); border-radius: 3px; }
+  .log::-webkit-scrollbar-track { background: transparent; }
+  
+  /* Tag colors map (Z-API) */
+  .c0 { background: #ff8a8a; } .c1 { background: #6dd3a4; }
+  .c2 { background: #ffd56e; } .c3 { background: #5eb4ff; }
+  .c4 { background: #c485ff; } .c5 { background: #ff9966; }
+  .c6 { background: #4dd0e1; } .c7 { background: #ff80ab; }
+  .c8 { background: #aed581; } .c9 { background: #ffb74d; }
+  
+  .step-num {
+    display: inline-block;
+    width: 22px; height: 22px;
+    background: var(--accent);
+    color: #001a0a;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 22px;
+    font-weight: 700;
+    font-size: 12px;
+    margin-right: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <div class="brand">
+    <div class="brand-icon">⚡</div>
+    <div>
+      <h1>Z-API • Exportador de Contatos por Etiqueta</h1>
+      <small>Roda 100% no seu navegador. Suas credenciais não saem desta página.</small>
+    </div>
+  </div>
+</header>
+
+<div class="alert">
+  <strong>🔒 Segurança:</strong> Suas credenciais são salvas apenas no <em>localStorage</em> do seu navegador (somente nesta máquina). Nada é enviado para nenhum servidor exceto a própria Z-API.
+</div>
+
+<div class="grid">
+  <!-- COLUNA ESQUERDA: CONFIGURAÇÃO -->
+  <div>
+    <div class="card">
+      <h2>Credenciais Z-API</h2>
+      
+      <label>Instance ID</label>
+      <input type="text" id="instanceId" placeholder="Ex: 3F163D617E13C1A29A95...">
+      
+      <label>Token</label>
+      <input type="password" id="token" placeholder="Token da instância">
+      
+      <label>Client-Token (opcional, em "Segurança")</label>
+      <input type="password" id="clientToken" placeholder="Security Token (deixe vazio se não usa)">
+      
+      <div class="btn-row">
+        <button class="btn secondary" id="btnTest"><span>🔌</span> Testar Conexão</button>
+        <button class="btn secondary" id="btnClear" style="flex: 0 0 auto; width: auto;" title="Limpar credenciais salvas">🗑️</button>
+      </div>
+      
+      <div style="margin-top: 14px; text-align: center;" id="statusArea">
+        <span class="status-pill"><span class="dot"></span> Aguardando teste</span>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 16px;">
+      <h2>Etiquetas Detectadas</h2>
+      <p class="helper" id="tagsHelper">Clique em "Buscar Etiquetas" depois de testar a conexão.</p>
+      <button class="btn" id="btnLoadTags" disabled><span>🏷️</span> Buscar Etiquetas</button>
+      <div class="tags-list" id="tagsList"></div>
+    </div>
+  </div>
+
+  <!-- COLUNA DIREITA: AÇÃO -->
+  <div>
+    <div class="card">
+      <h2>Exportação Completa</h2>
+      
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-value" id="statChats">0</div>
+          <div class="stat-label">Conversas</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="statTags">0</div>
+          <div class="stat-label">Etiquetas</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="statContacts">0</div>
+          <div class="stat-label">Contatos c/ Etiqueta</div>
+        </div>
+      </div>
+
+      <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+      <div class="progress-label" id="progressLabel">Pronto para iniciar.</div>
+
+      <div class="btn-row" style="margin-top: 18px;">
+        <button class="btn" id="btnExport" disabled><span>📥</span> Iniciar Exportação</button>
+        <button class="btn secondary" id="btnDownload" disabled style="flex: 0 0 auto; width: auto;">💾 Baixar CSV</button>
+      </div>
+      
+      <p class="helper" style="margin-top: 14px; margin-bottom: 0;">
+        <span class="step-num">1</span>Lista todos os chats da sua conta<br>
+        <span class="step-num">2</span>Para cada chat, busca suas etiquetas<br>
+        <span class="step-num">3</span>Monta o CSV: Nome, Telefone, Etiqueta(s)
+      </p>
+    </div>
+
+    <div class="card" style="margin-top: 16px;">
+      <h2>Log de Execução</h2>
+      <div class="log" id="logBox">
+        <div class="log-line muted"><span class="ts">[--:--:--]</span>Aguardando início.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  Ferramenta local • Não armazena dados em servidores externos • Versão 1.0
+</div>
+</div>
+
+<script>
+// ============================================================
+// Z-API EXPORTER — Lógica
+// ============================================================
+
+const API_BASE = 'https://api.z-api.io';
+const STORAGE_KEY = 'zapi_export_credentials';
+
+// Cores Z-API (referência)
+const TAG_COLORS = ['#ff8a8a','#6dd3a4','#ffd56e','#5eb4ff','#c485ff','#ff9966','#4dd0e1','#ff80ab','#aed581','#ffb74d'];
+
+// State
+let state = {
+  tags: [],
+  chats: [],
+  results: [], // { phone, name, tags: [tagName] }
+  csvReady: null,
+};
+
+// DOM helpers
+const $ = id => document.getElementById(id);
+const log = (msg, type = 'muted') => {
+  const box = $('logBox');
+  const ts = new Date().toLocaleTimeString('pt-BR');
+  const line = document.createElement('div');
+  line.className = 'log-line ' + type;
+  line.innerHTML = `<span class="ts">[${ts}]</span>${msg}`;
+  box.appendChild(line);
+  box.scrollTop = box.scrollHeight;
+};
+const setStatus = (text, cls = '') => {
+  $('statusArea').innerHTML = `<span class="status-pill ${cls}"><span class="dot"></span> ${text}</span>`;
+};
+const setProgress = (pct, label) => {
+  $('progressBar').style.width = pct + '%';
+  if (label) $('progressLabel').textContent = label;
+};
+
+// ============================================================
+// Persistência local
+// ============================================================
+function saveCreds() {
+  const data = {
+    instanceId: $('instanceId').value.trim(),
+    token: $('token').value.trim(),
+    clientToken: $('clientToken').value.trim(),
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+function loadCreds() {
+  try {
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    if (data.instanceId) $('instanceId').value = data.instanceId;
+    if (data.token) $('token').value = data.token;
+    if (data.clientToken) $('clientToken').value = data.clientToken;
+  } catch(e) {}
+}
+function getCreds() {
+  return {
+    instanceId: $('instanceId').value.trim(),
+    token: $('token').value.trim(),
+    clientToken: $('clientToken').value.trim(),
+  };
+}
+
+// ============================================================
+// Camada de chamada à API
+// ============================================================
+async function apiCall(path, options = {}) {
+  const { instanceId, token, clientToken } = getCreds();
+  if (!instanceId || !token) throw new Error('Credenciais incompletas');
+  
+  const url = `${API_BASE}/instances/${instanceId}/token/${token}${path}`;
+  const headers = { 'Content-Type': 'application/json' };
+  if (clientToken) headers['Client-Token'] = clientToken;
+  
+  const res = await fetch(url, { ...options, headers });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`HTTP ${res.status}: ${text.substring(0, 200)}`);
+  }
+  return res.json();
+}
+
+// ============================================================
+// Teste de conexão
+// ============================================================
+async function testConnection() {
+  saveCreds();
+  setStatus('Testando...', '');
+  log('Testando conexão...', 'info');
+  
+  try {
+    const data = await apiCall('/status');
+    if (data.connected === true) {
+      setStatus('Conectada', 'connected');
+      log('✅ Instância conectada com sucesso!', 'success');
+      $('btnLoadTags').disabled = false;
+      return true;
+    } else {
+      setStatus('Desconectada', 'disconnected');
+      log('⚠️ Instância respondeu mas está DESCONECTADA do WhatsApp. Leia o QR Code no painel Z-API.', 'warn');
+      return false;
+    }
+  } catch (e) {
+    setStatus('Falha na conexão', 'disconnected');
+    log('❌ Erro: ' + e.message, 'error');
+    return false;
+  }
+}
+
+// ============================================================
+// Buscar etiquetas
+// ============================================================
+async function loadTags() {
+  log('Buscando etiquetas...', 'info');
+  $('btnLoadTags').disabled = true;
+  
+  try {
+    const tags = await apiCall('/tags');
+    if (!Array.isArray(tags) || tags.length === 0) {
+      log('⚠️ Nenhuma etiqueta encontrada na sua conta.', 'warn');
+      $('tagsHelper').textContent = 'Nenhuma etiqueta encontrada.';
+      $('btnLoadTags').disabled = false;
+      return;
+    }
+    
+    state.tags = tags;
+    $('statTags').textContent = tags.length;
+    $('tagsHelper').textContent = `${tags.length} etiquetas encontradas:`;
+    
+    const list = $('tagsList');
+    list.innerHTML = '';
+    tags.forEach(t => {
+      const chip = document.createElement('div');
+      chip.className = 'tag-chip';
+      const colorIdx = (t.color || 0) % TAG_COLORS.length;
+      chip.innerHTML = `<span class="swatch" style="background: ${TAG_COLORS[colorIdx]}"></span>${escapeHtml(t.name)}`;
+      list.appendChild(chip);
+    });
+    
+    log(`✅ ${tags.length} etiquetas carregadas.`, 'success');
+    $('btnExport').disabled = false;
+    $('btnLoadTags').disabled = false;
+  } catch (e) {
+    log('❌ Erro ao buscar etiquetas: ' + e.message, 'error');
+    $('btnLoadTags').disabled = false;
+  }
+}
+
+// ============================================================
+// Buscar todos os chats (paginado)
+// ============================================================
+async function loadAllChats() {
+  log('Buscando lista de chats (pode demorar)...', 'info');
+  let page = 1;
+  let pageSize = 100;
+  let allChats = [];
+  
+  while (true) {
+    setProgress(0, `Carregando chats... página ${page} (${allChats.length} até agora)`);
+    let chats;
+    try {
+      chats = await apiCall(`/chats?page=${page}&pageSize=${pageSize}`);
+    } catch (e) {
+      log(`⚠️ Erro na página ${page}: ${e.message}`, 'warn');
+      break;
+    }
+    
+    if (!Array.isArray(chats) || chats.length === 0) break;
+    allChats = allChats.concat(chats);
+    log(`📄 Página ${page}: ${chats.length} chats (total: ${allChats.length})`, 'muted');
+    
+    if (chats.length < pageSize) break;
+    page++;
+    
+    // Limite defensivo
+    if (page > 200) {
+      log('⚠️ Limite de 200 páginas atingido por segurança.', 'warn');
+      break;
+    }
+    
+    await sleep(150); // não maltratar a API
+  }
+  
+  return allChats;
+}
+
+// ============================================================
+// Buscar etiquetas de UM chat
+// ============================================================
+async function getChatTags(phone) {
+  try {
+    const data = await apiCall(`/chats/${phone}/tags`);
+    if (Array.isArray(data)) return data; // pode ser [] ou [{name, color, id}]
+    if (data && Array.isArray(data.tags)) return data.tags;
+    return [];
+  } catch (e) {
+    return null; // erro
+  }
+}
+
+// ============================================================
+// Exportação principal
+// ============================================================
+async function exportAll() {
+  $('btnExport').disabled = true;
+  state.results = [];
+  
+  // 1. Carrega chats
+  const chats = await loadAllChats();
+  if (chats.length === 0) {
+    log('❌ Nenhum chat encontrado.', 'error');
+    $('btnExport').disabled = false;
+    return;
+  }
+  
+  state.chats = chats;
+  $('statChats').textContent = chats.length;
+  log(`✅ ${chats.length} chats carregados. Buscando etiquetas de cada um...`, 'success');
+  
+  // 2. Para cada chat, busca as tags
+  let processados = 0;
+  let comTag = 0;
+  let erros = 0;
+  const total = chats.length;
+  
+  for (const chat of chats) {
+    const phone = chat.phone || chat.id || chat.chatId;
+    if (!phone) { processados++; continue; }
+    
+    // Pula grupos (geralmente terminam com @g.us ou têm "isGroup")
+    if (chat.isGroup === true || (typeof phone === 'string' && phone.includes('-'))) {
+      processados++;
+      setProgress((processados / total) * 100, `Processando ${processados}/${total} • Pulando grupo`);
+      continue;
+    }
+    
+    const tags = await getChatTags(phone);
+    if (tags === null) {
+      erros++;
+    } else if (tags.length > 0) {
+      comTag++;
+      const name = chat.name || chat.pushname || chat.notifyName || phone;
+      const tagNames = tags.map(t => t.name || t).filter(Boolean);
+      state.results.push({ phone, name, tags: tagNames });
+      $('statContacts').textContent = comTag;
+    }
+    
+    processados++;
+    if (processados % 5 === 0) {
+      setProgress((processados / total) * 100, `${processados}/${total} • ${comTag} com etiqueta • ${erros} erros`);
+    }
+    
+    await sleep(80); // throttle
+  }
+  
+  setProgress(100, `✅ Concluído: ${comTag} contatos com etiqueta de ${total} chats`);
+  log(`🎉 Exportação concluída! ${comTag} contatos com etiqueta encontrados.`, 'success');
+  
+  if (state.results.length > 0) {
+    state.csvReady = buildCSV(state.results);
+    $('btnDownload').disabled = false;
+    log('💾 CSV pronto para download. Clique em "Baixar CSV".', 'success');
+  } else {
+    log('⚠️ Nenhum contato com etiqueta encontrado.', 'warn');
+  }
+  
+  $('btnExport').disabled = false;
+}
+
+// ============================================================
+// Constrói CSV
+// ============================================================
+function buildCSV(results) {
+  // Modo 1: uma linha por contato com todas as tags concatenadas
+  // Modo 2: uma linha por contato+tag (mais útil para filtros)
+  // Faremos os dois! O download terá ambas as planilhas em um único CSV expandido.
+  
+  let csv = "Telefone,Nome,Etiqueta\n";
+  results.forEach(r => {
+    r.tags.forEach(tag => {
+      csv += `"${csvEsc(r.phone)}","${csvEsc(r.name)}","${csvEsc(tag)}"\n`;
+    });
+  });
+  return csv;
+}
+function csvEsc(s) {
+  return String(s).replace(/"/g, '""');
+}
+
+function downloadCSV() {
+  if (!state.csvReady) return;
+  const blob = new Blob(['\ufeff' + state.csvReady], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
+  a.download = `zapi-contatos-etiquetas-${stamp}.csv`;
+  a.click();
+  log('📥 CSV baixado.', 'success');
+}
+
+// ============================================================
+// Utilitários
+// ============================================================
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ============================================================
+// Eventos
+// ============================================================
+$('btnTest').addEventListener('click', testConnection);
+$('btnLoadTags').addEventListener('click', loadTags);
+$('btnExport').addEventListener('click', exportAll);
+$('btnDownload').addEventListener('click', downloadCSV);
+$('btnClear').addEventListener('click', () => {
+  if (confirm('Limpar credenciais salvas?')) {
+    localStorage.removeItem(STORAGE_KEY);
+    $('instanceId').value = '';
+    $('token').value = '';
+    $('clientToken').value = '';
+    log('🗑️ Credenciais limpas.', 'muted');
+  }
+});
+
+// Carrega credenciais salvas
+loadCreds();
+log('Pronto. Preencha as credenciais e clique em "Testar Conexão".', 'info');
+</script>
+</body>
+</html>
